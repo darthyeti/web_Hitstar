@@ -1018,10 +1018,18 @@ function closeScanner() {
   document.getElementById('qr-overlay').classList.add('hidden');
 }
 
+let lastScanTime = 0;
 function scanQRLoop() {
+  const now = Date.now();
+  if (now - lastScanTime < 100) {          // max ~10fps – schont iPhone-CPU
+    scanAnimId = requestAnimationFrame(scanQRLoop);
+    return;
+  }
+  lastScanTime = now;
+
   const video  = document.getElementById('qr-video');
   const canvas = document.getElementById('qr-canvas');
-  if (!video.videoWidth) {
+  if (!video.videoWidth || video.paused || video.ended) {
     scanAnimId = requestAnimationFrame(scanQRLoop);
     return;
   }
@@ -1030,10 +1038,13 @@ function scanQRLoop() {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(video, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
   if (code) {
-    // Hitstar QR-Format: hitstergame.com/de/00069  oder  /de/00069
-    const match = code.data.match(/\/(\d+)\s*$/);
+    console.log('QR erkannt:', code.data);
+    // Zeige rohen Inhalt – hilft beim Debuggen des URL-Formats
+    document.getElementById('qr-status').textContent = '✓ ' + code.data;
+    // Hitstar QR-Format: hitstergame.com/de/00069  (ggf. mit trailing slash)
+    const match = code.data.match(/\/(\d+)\/?$/);
     if (match) {
       const num = parseInt(match[1], 10);
       closeScanner();
@@ -1041,6 +1052,12 @@ function scanQRLoop() {
       lookupCard();
       return;
     }
+    // QR erkannt, aber falsches Format → kurz anzeigen, dann weitermachen
+    setTimeout(() => {
+      if (scanAnimId !== null) {
+        document.getElementById('qr-status').textContent = 'QR-Code auf die Karte richten…';
+      }
+    }, 2500);
   }
   scanAnimId = requestAnimationFrame(scanQRLoop);
 }

@@ -283,6 +283,13 @@
         <input type="text" id="random-p2" placeholder="Spieler 2" value="Spieler 2">
       </div>
     </div>
+    <div style="margin-top:14px">
+      <div class="label">Sieger bei … Punkten</div>
+      <input type="number" id="target-score" value="20" min="5" max="200"
+             style="background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                    color:var(--text);font-size:1.4rem;font-weight:700;text-align:center;
+                    padding:10px;width:100%;outline:none;">
+    </div>
   </div>
 
   <div class="w480">
@@ -303,6 +310,7 @@
 
     <!-- Classic-Modus: Kartennummer -->
     <div id="input-battle" class="card center">
+      <div id="battle-turn-banner" class="turn-info" style="margin-bottom:8px"></div>
       <button class="btn btn-primary" onclick="openScanner()" id="btn-scan">📷 Karte scannen</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
         <div style="flex:1;height:1px;background:var(--border)"></div>
@@ -350,7 +358,6 @@
       <button class="btn btn-secondary" id="btn-pause" onclick="togglePlay()">⏸ Pause</button>
       <button class="btn btn-primary" onclick="goToConfirm()">Alle fertig? ✓</button>
     </div>
-    <button class="btn btn-secondary btn-sm mt8" onclick="tryNextResult()">Falscher Song? Nächster Treffer →</button>
   </div>
 
   <!-- Phase: Bestätigung -->
@@ -386,6 +393,7 @@
 <!-- ═══════════ END ═══════════ -->
 <div id="screen-end" class="screen center">
   <div class="logo" style="font-size:2.5rem">🎉 Ergebnis</div>
+  <div id="end-winner-msg" class="hidden" style="font-size:1.4rem;font-weight:900;margin-top:8px"></div>
   <div class="card w480 mt24" id="final-scores"></div>
   <div class="w480 mt16">
     <button class="btn btn-primary" onclick="resetGame()">Neues Spiel</button>
@@ -502,6 +510,7 @@ let gameMode   = 'battle';
 let playedCards = new Set();
 let selectedCategories = new Set();
 let currentTurn = 0;
+let targetScore = 20;
 
 // ── MODE SELECTION ────────────────────────────────────────────────────────────
 function selectMode(mode) {
@@ -538,14 +547,15 @@ function startGame() {
       scores[name] = 0;
     });
     currentTurn = 0;
+    targetScore = parseInt(document.getElementById('target-score').value) || 20;
   } else {
     const inputs = document.querySelectorAll('#player-inputs input');
     inputs.forEach((inp, i) => {
       const name = inp.value.trim() || `Spieler ${i+1}`;
       players.push({ name, color: COLORS[i] });
-      scores[name] = 0;
     });
     if (!players.length) return;
+    currentTurn = 0;
   }
   playedCards = new Set();
   renderScorebar();
@@ -571,6 +581,9 @@ function phase(name) {
       el.classList.add('hidden');
     }
   });
+  if (name === 'playing' && gameMode === 'random') {
+    renderScorebar(); // aktiven Spieler sofort hervorheben
+  }
   if (name === 'input') {
     const isBattle = gameMode === 'battle';
     document.getElementById('input-battle').classList.toggle('hidden', !isBattle);
@@ -579,6 +592,12 @@ function phase(name) {
     if (isBattle) {
       document.getElementById('card-num').value = '';
       setTimeout(() => document.getElementById('card-num').focus(), 50);
+      const pb = players[currentTurn];
+      if (pb) {
+        const banner = document.getElementById('battle-turn-banner');
+        banner.textContent = `${pb.name} ist dran`;
+        banner.style.color = pb.color;
+      }
     } else {
       const activeDB  = getActiveDB();
       const total     = Object.keys(activeDB).length;
@@ -598,11 +617,19 @@ function phase(name) {
 
 // ── SCOREBAR ──────────────────────────────────────────────────────────────────
 function renderScorebar() {
-  document.getElementById('scorebar').innerHTML = players.map(p => `
-    <div class="score-pill" id="pill-${CSS.escape(p.name)}">
-      <div class="sname" style="color:${p.color}">${p.name}</div>
-      <div class="spts">${scores[p.name]} ♪</div>
-    </div>`).join('');
+  if (gameMode === 'battle') {
+    document.getElementById('scorebar').innerHTML = players.map((p, i) => `
+      <div class="score-pill ${i === currentTurn ? 'winner' : ''}" id="pill-${CSS.escape(p.name)}">
+        <div class="sname" style="color:${p.color}">${p.name}</div>
+      </div>`).join('');
+  } else {
+    document.getElementById('scorebar').innerHTML = players.map((p, i) => `
+      <div class="score-pill" id="pill-${CSS.escape(p.name)}"
+           style="${i === currentTurn ? `border-color:${p.color};background:${p.color}22;` : ''}">
+        <div class="sname" style="color:${p.color}">${p.name}</div>
+        <div class="spts">${scores[p.name]} ♪</div>
+      </div>`).join('');
+  }
 }
 
 
@@ -802,15 +829,6 @@ function playResult(idx, dbYear = null) {
   }
 }
 
-function tryNextResult() {
-  rIdx++;
-  if (rIdx >= results.length) {
-    document.getElementById('play-hint').textContent = 'Keine weiteren Treffer.';
-    return;
-  }
-  stopAudio();
-  playResult(rIdx, current?.dbYear);
-}
 
 function togglePlay() {
   const audio = document.getElementById('audio');
@@ -875,7 +893,9 @@ function doReveal() {
     turnInfo.textContent = `Punkte für: ${p.name}`;
     turnInfo.style.color = p.color;
     turnInfo.classList.remove('hidden');
-    document.getElementById('award-label').textContent = 'Was wurde richtig geraten?';
+    const awardLabel = document.getElementById('award-label');
+    awardLabel.textContent = 'Was wurde richtig geraten?';
+    awardLabel.classList.remove('hidden');
 
     const decade = Math.floor((current.year || 0) / 10) * 10;
     document.getElementById('award-grid').innerHTML = `
@@ -900,15 +920,12 @@ function doReveal() {
     document.getElementById('btn-next').disabled = false;
     document.getElementById('btn-next').textContent = 'Punkte vergeben →';
   } else {
+    // Battle mode: kein Scoring, Karte liegt auf dem Tisch
     document.getElementById('reveal-turn-info').classList.add('hidden');
     document.getElementById('pts-sum-display').classList.add('hidden');
-    document.getElementById('award-label').textContent = 'Wer bekommt die Karte?';
-    document.getElementById('award-grid').innerHTML = players.map(p => `
-      <button class="award-btn" onclick="pickWinner('${p.name}', this)"
-              style="border-color:${p.color}44">
-        <span style="color:${p.color}; font-size:1.1em">●</span><br>${p.name}
-      </button>`).join('');
-    document.getElementById('btn-next').disabled = true;
+    document.getElementById('award-label').classList.add('hidden');
+    document.getElementById('award-grid').innerHTML = '';
+    document.getElementById('btn-next').disabled = false;
     document.getElementById('btn-next').textContent = 'Nächste Karte →';
   }
 
@@ -942,15 +959,18 @@ function nextCard() {
       const pill = document.querySelector(`#pill-${CSS.escape(p.name)}`);
       if (pill) { pill.classList.add('winner'); setTimeout(() => pill.classList.remove('winner'), 1800); }
     }
+    if (scores[p.name] >= targetScore) {
+      showEndGame(p);
+      return;
+    }
     currentTurn = 1 - currentTurn;
-  } else if (pendingWinner) {
-    scores[pendingWinner]++;
+  } else {
+    // Battle mode: nur Turn weiterschalten
+    currentTurn = (currentTurn + 1) % players.length;
     renderScorebar();
-    const pill = document.querySelector(`#pill-${CSS.escape(pendingWinner)}`);
-    if (pill) { pill.classList.add('winner'); setTimeout(() => pill.classList.remove('winner'), 1800); }
-    pendingWinner = null;
   }
   current = null;
+  pendingWinner = null;
   phase('input');
 }
 
@@ -962,7 +982,7 @@ function skipCard() {
 }
 
 // ── END GAME ──────────────────────────────────────────────────────────────────
-function showEndGame() {
+function showEndGame(winner = null) {
   stopAudio();
   const sorted = [...players].sort((a, b) => scores[b.name] - scores[a.name]);
   const medals = ['🥇','🥈','🥉'];
@@ -972,6 +992,16 @@ function showEndGame() {
       <div class="final-name" style="color:${p.color}">${p.name}</div>
       <div class="final-pts">${scores[p.name]} ♪</div>
     </div>`).join('');
+  const msg = document.getElementById('end-winner-msg');
+  if (winner) {
+    msg.textContent = `🏆 ${winner.name} gewinnt!`;
+    msg.style.color = winner.color;
+    msg.classList.remove('hidden');
+  } else {
+    msg.classList.add('hidden');
+  }
+  current = null;
+  pendingWinner = null;
   show('screen-end');
 }
 

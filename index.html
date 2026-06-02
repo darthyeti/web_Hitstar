@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>HITSTAR – Apple Music</title>
+  <style>
+    :root {
+      --bg: #0d0d1a;
+      --surface: #161626;
+      --border: #2a2a3e;
+      --accent: #c850c0;
+      --blue: #4158d0;
+      --yellow: #f7971e;
+      --green: #56ab2f;
+      --text: #f0f0f8;
+      --muted: #6a6a8a;
+      --r: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; padding: 32px 16px; }
+    .screen.active { display: flex; }
+
+    /* ── TYPOGRAPHY ── */
+    .logo {
+      font-size: 3.5rem; font-weight: 900; letter-spacing: -2px;
+      background: linear-gradient(135deg, #c850c0, #4158d0, #f7971e);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo-sub { color: var(--muted); font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 32px; }
+    .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px;
+      width: 100%; max-width: 480px; margin-bottom: 14px;
+    }
+
+    /* ── INPUTS ── */
+    input[type="text"], input[type="number"] {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 1rem; padding: 11px 14px; width: 100%; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    .input-big {
+      font-size: 2.8rem; font-weight: 900; text-align: center;
+      letter-spacing: 6px; padding: 16px; border-radius: var(--r);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: block; width: 100%; padding: 13px; border: none;
+      border-radius: var(--r); font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary  { background: linear-gradient(135deg, #c850c0, #4158d0); color: white; }
+    .btn-secondary{ background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .btn-success  { background: linear-gradient(135deg, #56ab2f, #a8e063); color: white; }
+    .btn-reveal   { background: linear-gradient(135deg, #f7971e, #ffd200); color: #0d0d1a; font-size: 1.2rem; padding: 18px; }
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; width: auto; display: inline-block; }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+    .btn-row { display: flex; gap: 10px; width: 100%; max-width: 480px; }
+
+    /* ── MODE SELECTION ── */
+    .mode-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    .mode-card {
+      border: 2px solid var(--border); border-radius: var(--r);
+      padding: 14px 8px; text-align: center; cursor: pointer;
+      transition: all .2s; background: var(--bg);
+    }
+    .mode-card:hover:not(.disabled) { border-color: var(--accent); }
+    .mode-card.selected { border-color: var(--accent); background: rgba(200,80,192,.1); }
+    .mode-card.disabled { opacity: 0.4; cursor: default; }
+    .mode-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .mode-name { font-size: 0.82rem; font-weight: 700; }
+    .mode-badge {
+      font-size: 0.6rem; background: var(--border); border-radius: 4px;
+      padding: 1px 5px; color: var(--muted); margin-top: 4px; display: inline-block;
+    }
+
+    /* ── PLAYER SETUP ── */
+    .player-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── SCOREBAR ── */
+    #scorebar {
+      display: flex; gap: 8px; width: 100%; max-width: 480px;
+      margin-bottom: 20px; overflow-x: auto; padding: 2px; flex-wrap: wrap;
+    }
+    .score-pill {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px; font-size: 0.82rem;
+      white-space: nowrap; transition: border-color .3s, background .3s;
+    }
+    .score-pill .sname { font-size: 0.7rem; margin-bottom: 1px; }
+    .score-pill .spts  { font-weight: 700; font-size: 1rem; }
+    .score-pill.winner { border-color: var(--yellow); background: rgba(247,151,30,.12); }
+
+    /* ── MUSIC PLACEHOLDER (playing phase, cover hidden) ── */
+    .music-placeholder {
+      width: 200px; height: 200px; border-radius: var(--r);
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px; flex-shrink: 0; position: relative; overflow: hidden;
+    }
+    .music-placeholder::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(200,80,192,.15), rgba(65,88,208,.15));
+    }
+    .vinyl {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, #1a1a2e 28%, #2a2a3e 29%, #111 55%, #222 56%, #111 80%, #222 81%);
+      animation: spin 3s linear infinite; position: relative; z-index: 1;
+      box-shadow: 0 0 30px rgba(200,80,192,.3);
+    }
+    .vinyl::after {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px; height: 14px; border-radius: 50%;
+      background: linear-gradient(135deg, #c850c0, #4158d0);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ARTWORK (reveal phase) ── */
+    .artwork-wrap {
+      width: 120px; height: 120px; border-radius: var(--r);
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem; overflow: hidden; margin-bottom: 12px; flex-shrink: 0;
+    }
+    .artwork-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { width: 100%; max-width: 480px; }
+    .progress-track { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0 4px; }
+    .progress-fill  { height: 100%; background: linear-gradient(90deg, #c850c0, #4158d0); border-radius: 2px; width: 0; transition: width .5s linear; }
+    .progress-time  { font-size: 0.72rem; color: var(--muted); text-align: right; }
+
+    /* ── CONFIRM PHASE ── */
+    .confirm-icon { font-size: 4rem; margin-bottom: 16px; }
+    .confirm-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+
+    /* ── YEAR REVEAL ── */
+    .year-big {
+      font-size: 5.5rem; font-weight: 900; letter-spacing: -3px;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin: 8px 0;
+    }
+    @keyframes yearPop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      70%  { transform: scale(1.08); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    .year-pop { animation: yearPop .55s cubic-bezier(.175,.885,.32,1.275) forwards; }
+
+    /* ── AWARD GRID ── */
+    .award-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px; width: 100%; max-width: 480px; margin: 12px 0;
+    }
+    .award-btn {
+      padding: 12px 8px; border: 2px solid var(--border); border-radius: var(--r);
+      background: var(--surface); color: var(--text); font-size: 0.9rem;
+      cursor: pointer; transition: all .15s; text-align: center;
+    }
+    .award-btn:hover  { border-color: var(--yellow); }
+    .award-btn.picked { border-color: var(--yellow); background: rgba(247,151,30,.15); }
+
+    /* ── UTILS ── */
+    .hidden  { display: none !important; }
+    .center  { text-align: center; }
+    .muted   { color: var(--muted); font-size: 0.85rem; }
+    .mt8  { margin-top: 8px; }
+    .mt16 { margin-top: 16px; }
+    .mt24 { margin-top: 24px; }
+    .w480 { width: 100%; max-width: 480px; }
+    .song-name   { font-size: 1.2rem; font-weight: 700; }
+    .song-artist { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 16px auto;
+    }
+
+    /* ── CATEGORY PILLS ── */
+    .cat-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer;
+      border: 2px solid var(--border); background: var(--bg);
+      font-size: 0.82rem; font-weight: 600; transition: all .15s;
+      user-select: none;
+    }
+    .cat-pill.active { border-color: var(--accent); background: rgba(200,80,192,.12); color: var(--text); }
+    .cat-pill:not(.active) { color: var(--muted); }
+    .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── FINAL SCORES ── */
+    .final-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .final-row:last-child { border-bottom: none; }
+    .final-rank { font-size: 1.4rem; font-weight: 900; width: 36px; }
+    .final-name { flex: 1; font-size: 1rem; }
+    .final-pts  { font-size: 1.4rem; font-weight: 900; color: var(--yellow); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ SETUP ═══════════ -->
+<div id="screen-setup" class="screen active">
+  <div class="logo">HITSTAR</div>
+  <div class="logo-sub">Apple Music Edition</div>
+
+  <div class="card">
+    <div class="label">Spielmodus</div>
+    <div class="mode-grid">
+      <div class="mode-card selected" id="mode-battle" onclick="selectMode('battle')">
+        <div class="mode-icon">⚔️</div>
+        <div class="mode-name">Classic-Modus</div>
+      </div>
+      <div class="mode-card" id="mode-random" onclick="selectMode('random')">
+        <div class="mode-icon">🎲</div>
+        <div class="mode-name">Unterwegs-Modus</div>
+      </div>
+      <div class="mode-card disabled">
+        <div class="mode-icon">🎲</div>
+        <div class="mode-name">Digital-Modus</div>
+        <div class="mode-badge">Demnächst</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="category-card">
+    <div class="label">Karten-Set</div>
+    <div id="category-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Spieler</div>
+    <div id="player-inputs"></div>
+    <button class="btn btn-secondary btn-sm mt8" onclick="addPlayer()">+ Spieler hinzufügen</button>
+  </div>
+
+  <div class="w480">
+    <button class="btn btn-primary" onclick="startGame()">Spiel starten ▶</button>
+  </div>
+</div>
+
+
+<!-- ═══════════ GAME ═══════════ -->
+<div id="screen-game" class="screen">
+  <div style="width:100%;max-width:480px;display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="btn btn-secondary btn-sm" onclick="goHome()" style="padding:6px 12px;font-size:0.8rem">⌂ Hauptmenü</button>
+  </div>
+  <div id="scorebar"></div>
+
+  <!-- Phase: Eingabe -->
+  <div id="phase-input" class="w480" style="display:flex;flex-direction:column">
+
+    <!-- Classic-Modus: Kartennummer -->
+    <div id="input-battle" class="card center">
+      <div class="label">Kartennummer eingeben</div>
+      <input id="card-num" type="number" class="input-big" placeholder="069"
+             onkeydown="if(event.key==='Enter')lookupCard()">
+      <button class="btn btn-primary mt16" onclick="lookupCard()">Abspielen ▶</button>
+    </div>
+    <div id="manual-card" class="card hidden">
+      <div class="label">Karte nicht bekannt – Song manuell eingeben</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input id="m-artist" type="text" placeholder="Interpret">
+        <input id="m-title"  type="text" placeholder="Titel">
+        <button class="btn btn-primary" onclick="searchManual()">Suchen ▶</button>
+      </div>
+    </div>
+
+    <!-- Unterwegs-Modus: Song ziehen -->
+    <div id="input-random" class="card center hidden">
+      <div style="font-size:3rem;margin-bottom:8px">🎲</div>
+      <div id="random-db-info" class="muted mt8"></div>
+      <button class="btn btn-primary mt16" onclick="drawRandomSong()">Song ziehen ▶</button>
+      <p id="random-hint" class="muted mt8"></p>
+    </div>
+
+  </div>
+
+  <!-- Phase: Abspielen (Cover versteckt) -->
+  <div id="phase-playing" class="hidden center" style="flex-direction:column;align-items:center;width:100%;max-width:480px">
+    <div class="music-placeholder mt8">
+      <div class="vinyl" id="vinyl"></div>
+    </div>
+    <div class="spinner hidden" id="spinner"></div>
+    <p id="play-hint" class="muted">Song wird geladen…</p>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+      <div class="progress-time" id="prog-time">0:00 / 0:30</div>
+    </div>
+    <audio id="audio"></audio>
+    <div class="btn-row mt16">
+      <button class="btn btn-secondary" id="btn-pause" onclick="togglePlay()">⏸ Pause</button>
+      <button class="btn btn-primary" onclick="goToConfirm()">Alle fertig? ✓</button>
+    </div>
+    <button class="btn btn-secondary btn-sm mt8" onclick="tryNextResult()">Falscher Song? Nächster Treffer →</button>
+  </div>
+
+  <!-- Phase: Bestätigung -->
+  <div id="phase-confirm" class="hidden center" style="flex-direction:column;align-items:center;width:100%;max-width:480px">
+    <div class="confirm-icon">🤔</div>
+    <div class="confirm-title">Haben alle ihre Schätzung?</div>
+    <p class="muted mt8">Sobald aufgedeckt wird, sieht jeder das Ergebnis.</p>
+    <div class="w480 mt24">
+      <button class="btn btn-reveal" onclick="doReveal()">AUFDECKEN !</button>
+    </div>
+    <button class="btn btn-secondary btn-sm mt16" onclick="backToPlaying()">← Zurück zum Song</button>
+  </div>
+
+  <!-- Phase: Aufdecken -->
+  <div id="phase-reveal" class="hidden center" style="flex-direction:column;align-items:center;width:100%;max-width:480px">
+    <div class="artwork-wrap mt8" id="art-reveal">🎵</div>
+    <div class="song-name"   id="rev-title"></div>
+    <div class="song-artist" id="rev-artist"></div>
+    <div class="year-big"    id="rev-year"></div>
+    <p class="muted">Wer bekommt die Karte?</p>
+    <div class="award-grid" id="award-grid"></div>
+    <div class="btn-row mt8">
+      <button class="btn btn-secondary" onclick="skipCard()">Überspringen</button>
+      <button class="btn btn-success" id="btn-next" onclick="nextCard()" disabled>Nächste Karte →</button>
+    </div>
+    <button class="btn btn-secondary btn-sm mt16" onclick="showEndGame()">Spiel beenden</button>
+  </div>
+</div>
+
+
+<!-- ═══════════ END ═══════════ -->
+<div id="screen-end" class="screen center">
+  <div class="logo" style="font-size:2.5rem">🎉 Ergebnis</div>
+  <div class="card w480 mt24" id="final-scores"></div>
+  <div class="w480 mt16">
+    <button class="btn btn-primary" onclick="resetGame()">Neues Spiel</button>
+  </div>
+</div>
+
+
+<script>
+// ── DB ────────────────────────────────────────────────────────────────────────
+// Eingebettete Datenbank (wird durch den Scanner aktualisiert)
+const EMBEDDED_DB = {"1":{"artist":"Rudi Carrell","title":"Wann wird's mal wieder richtig Sommer?","year":1975},"10":{"artist":"Van McCoy","title":"The Hustle","year":1975},"100":{"artist":"The Supremes","cat":"Legacy","title":"You Can't Hurry Love","year":1966},"101":{"artist":"Kanye West (feat. Jamie Foxx)","cat":"Legacy","title":"Gold Digger","year":2005},"102":{"artist":"Markus","cat":"Legacy","title":"Ich will Spaß","year":1982},"103":{"artist":"Modjo","cat":"Legacy","title":"Lady (Hear Me Tonight)","year":2000},"104":{"artist":"Fine Young Cannibals","cat":"Legacy","title":"She Drives Me Crazy","year":1988},"105":{"artist":"Freddy Quinn","cat":"Legacy","title":"Heimweh (Dort wo die Blumen blüh'n)","year":1956},"106":{"artist":"Dschinghis Khan","cat":"Legacy","title":"Moskau","year":1979},"107":{"artist":"Rednex","title":"Cotton Eye Joe","year":1994},"108":{"artist":"Billy Swan","title":"I Can Help","year":1974},"109":{"artist":"Bruce Springsteen","cat":"Legacy","title":"Dancing In The Dark","year":1984},"11":{"artist":"Erma Franklin","title":"Piece Of My Heart","year":1967},"110":{"artist":"Harry Belafonte","cat":"Legacy","title":"Day-O (The Banana Boat Song)","year":1956},"111":{"artist":"Gitte Haenning","cat":"Legacy","title":"Ich will 'nen Cowboy als Mann","year":1963},"112":{"artist":"Dua Lipa","cat":"Legacy","title":"Break My Heart","year":2020},"113":{"artist":"Miley Cyrus","cat":"Legacy","title":"Wrecking Ball","year":2013},"114":{"artist":"Elvis Presley","cat":"Legacy","title":"Jailhouse Rock","year":1957},"115":{"artist":"Harry Styles","cat":"Legacy","title":"Adore You","year":2019},"116":{"artist":"Little Richard","cat":"Legacy","title":"Good Golly, Miss Molly","year":1958},"117":{"artist":"Las Ketchup","cat":"Legacy","title":"The Ketchup Song (Asereje)","year":2002},"118":{"artist":"Mika","cat":"Legacy","title":"Relax, Take It Easy","year":2007},"119":{"artist":"The Monkees","cat":"Legacy","title":"I'm A Believer","year":1966},"12":{"artist":"Eric Carmen","title":"Hungry Eyes","year":1987},"120":{"artist":"Manuela","cat":"Legacy","title":"Schuld war nur der Bossa Nova","year":1963},"121":{"artist":"Icona Pop feat. Charli XCX","cat":"Legacy","title":"I Love It","year":2012},"122":{"artist":"Bob Sinclar (feat. Steve Edwards)","cat":"Legacy","title":"World Hold On (Children Of The Sky)","year":2006},"123":{"artist":"Steppenwolf","cat":"Legacy","title":"Born To Be Wild","year":1968},"124":{"artist":"Mark Ronson feat. Amy Winehouse","cat":"Legacy","title":"Valerie","year":2007},"125":{"artist":"Sam Cooke","cat":"Legacy","title":"(What A) Wonderful World","year":1960},"126":{"artist":"Herbert Grönemeyer","title":"Männer","year":1984},"127":{"artist":"New Radicals","cat":"Legacy","title":"You Get What You Give","year":1998},"128":{"artist":"Heintje","cat":"Legacy","title":"Mama","year":1968},"129":{"artist":"Celine Dion","cat":"Legacy","title":"My Heart Will Go On","year":1997},"13":{"artist":"Culture Club","cat":"Legacy","title":"Karma Chameleon","year":1983},"130":{"artist":"Lionel Richie","cat":"Legacy","title":"Dancing On The Ceiling","year":1986},"131":{"artist":"KC And The Sunshine Band","cat":"Legacy","title":"Give It Up","year":1982},"132":{"artist":"Robbie Williams","cat":"Legacy","title":"Feel","year":2002},"133":{"artist":"Nickelback","cat":"Legacy","title":"How You Remind Me","year":2001},"134":{"artist":"George Harrison","cat":"Legacy","title":"Got My Mind Set On You","year":1987},"135":{"artist":"Matthias Reim","cat":"Legacy","title":"Verdammt, ich lieb' dich","year":1990},"136":{"artist":"Reel 2 Real (feat. The Mad Stuntman)","cat":"Legacy","title":"I Like To Move It","year":1993},"137":{"artist":"The Human League","cat":"Legacy","title":"Don't You Want Me","year":1981},"138":{"artist":"Mark Forster feat. Lea","cat":"Legacy","title":"Drei Uhr nachts","year":2021},"139":{"artist":"Die Ärzte","cat":"Legacy","title":"Westerland","year":1988},"14":{"artist":"Nena","title":"99 Luftballons","year":1983},"140":{"artist":"The Police","cat":"Legacy","title":"Every Breath You Take","year":1983},"141":{"artist":"The Verve","cat":"Legacy","title":"Bitter Sweet Symphony","year":1997},"142":{"artist":"Will Smith","cat":"Legacy","title":"Gettin' Jiggy Wit It","year":1998},"143":{"artist":"Aqua","cat":"Legacy","title":"Barbie Girl","year":1997},"144":{"artist":"Cornelia Froboess","cat":"Legacy","title":"Pack die Badehose ein","year":1951},"145":{"artist":"Natalie Imbruglia","title":"Torn","year":1997},"146":{"artist":"Dion","cat":"Legacy","title":"The Wanderer","year":1961},"147":{"artist":"Ritchie Valens","cat":"Legacy","title":"La Bamba","year":1958},"148":{"artist":"Drake","cat":"Legacy","title":"Toosie Slide","year":2020},"149":{"artist":"Olivia Rodrigo","cat":"Legacy","title":"Drivers License","year":2021},"15":{"artist":"Torfrock","title":"Beinhart","year":1990},"150":{"artist":"Maroon 5 (feat. Christina Aguilera)","cat":"Legacy","title":"Moves Like Jagger","year":2011},"151":{"artist":"Helene Fischer","cat":"Legacy","title":"Atemlos durch die Nacht","year":2013},"152":{"artist":"Spice Girls","cat":"Legacy","title":"Stop","year":1998},"153":{"artist":"Jennifer Lopez","cat":"Legacy","title":"If You Had Love","year":1999},"154":{"artist":"Boston","cat":"Legacy","title":"More Than A Feeling","year":1976},"155":{"artist":"The Trammps","title":"Disco Inferno","year":1976},"156":{"artist":"Lewis Capaldi","title":"Someone You Loved","year":2018},"157":{"artist":"Die Doofen","title":"Mief! (Nimm mich jetzt, auch wenn ich stinke)","year":1995},"158":{"artist":"Guns N' Roses","title":"Sweet Child O' Mine","year":1988},"159":{"artist":"Elton John","title":"Your Song","year":1970},"16":{"artist":"50 Cent","title":"In Da Club","year":2003},"160":{"artist":"Cliff Richard","title":"Congratulations","year":1968},"161":{"artist":"Carly Simon","title":"You're So Vain","year":1972},"162":{"artist":"Commodores","title":"Easy","year":1977},"163":{"artist":"Alphaville","title":"Forever Young","year":1984},"164":{"artist":"Daryl Hall & John Oates","title":"Maneater","year":1982},"165":{"artist":"Falco","title":"Rock Me Amadeus","year":1985},"166":{"artist":"Sonny & Cher","title":"I Got You Babe","year":1965},"167":{"artist":"Die Ärzte","title":"Junge","year":2007},"168":{"artist":"Fleetwood Mac","title":"Everywhere","year":1987},"169":{"artist":"The Cranberries","title":"Zombie","year":1994},"17":{"artist":"Yazoo","title":"Don't Go","year":1982},"170":{"artist":"Duck Sauce","cat":"Legacy","title":"Barbra Streisand","year":2010},"171":{"artist":"Alicia Keys","cat":"Legacy","title":"No One","year":2007},"172":{"artist":"George Michael & Aretha Franklin","title":"I Knew You Were Waiting (For Me)","year":1987},"173":{"artist":"Frankie Valli & The Four Seasons","title":"December, 1963 (Oh, What A Night)","year":1975},"174":{"artist":"Madonna feat. Justin Timberlake & Timbaland","title":"4 Minutes","year":2008},"175":{"artist":"Kraftwerk","title":"Autobahn","year":1974},"176":{"artist":"Tom Jones","title":"She's A Lady","year":1971},"177":{"artist":"Shawn Mendes & Camila Cabello","title":"Señorita","year":2019},"178":{"artist":"Fugees","title":"Killing Me Softly With His Song","year":1996},"179":{"artist":"Britney Spears","title":"Oops!... I Did It Again","year":2000},"18":{"artist":"Whitney Houston","title":"I Wanna Dance With Somebody (Who Loves Me)","year":1987},"180":{"artist":"Tim Bendzko","title":"Nur noch kurz die Welt retten","year":2011},"181":{"artist":"Jason Derulo","cat":"Legacy","title":"Whatcha Say","year":2009},"182":{"artist":"Pur","title":"Abenteuerland","year":1995},"183":{"artist":"Coldplay","title":"Talk","year":2005},"184":{"artist":"Gotye feat. Kimbra","title":"Somebody That I Used To Know","year":2011},"185":{"artist":"Tracy Chapman","title":"Fast Car","year":1988},"186":{"artist":"Mike & The Mechanics","title":"The Living Years","year":1988},"187":{"artist":"Buddy","title":"Ab in den Süden","year":2003},"188":{"artist":"Brandy feat. Monica","title":"The Boy Is Mine","year":1998},"189":{"artist":"The Everly Brothers","title":"All I Have To Do Is Dream","year":1958},"19":{"artist":"Lukas Graham","title":"7 Years","year":2015},"190":{"artist":"The Beach Boys","title":"Surfin' U.S.A.","year":1963},"191":{"artist":"Atomic Kitten","title":"Whole Again","year":2001},"192":{"artist":"Richard Marx","title":"Right Here Waiting","year":1989},"193":{"artist":"Unheilig","title":"Geboren um zu leben","year":2010},"194":{"artist":"SDP","title":"Die Nacht von Freitag auf Montag","year":2012},"195":{"artist":"Alicia Keys","title":"Fallin'","year":2001},"196":{"artist":"Katy Perry","cat":"Legacy","title":"Firework","year":2010},"197":{"artist":"Christina Aguilera","cat":"Legacy","title":"Genie In A Bottle","year":1999},"198":{"artist":"Loreen","title":"Euphoria","year":2012},"199":{"artist":"Toto","title":"Africa","year":1982},"2":{"artist":"Paul Simon","title":"You Can Call Me Al","year":1986},"20":{"artist":"Peter Kraus","title":"Sugar Baby","year":1958},"200":{"artist":"Danny & The Juniors","title":"At The Hop","year":1957},"201":{"artist":"Culture Beat","title":"Mr. Vain","year":1993},"202":{"artist":"Eurythmics","title":"Sweet Dreams (Are Made Of This)","year":1983},"203":{"artist":"Meghan Trainor","title":"All About That Bass","year":2014},"204":{"artist":"Crowded House","title":"Don't Dream It's Over","year":1986},"205":{"artist":"Prince","cat":"Legacy","title":"Purple Rain","year":1984},"206":{"artist":"John Legend","title":"All of Me","year":2013},"207":{"artist":"Connie Francis","title":"Schöner fremder Mann","year":1964},"208":{"artist":"Wet Wet Wet","title":"Love Is All Around","year":1994},"209":{"artist":"Coolio feat. L.V.","title":"Gangsta's Paradise","year":1995},"21":{"artist":"Major Lazer, DJ Snake & MØ","title":"Lean On","year":2015},"210":{"artist":"Bill Haley & His Comets","title":"See You Later, Alligator","year":1956},"211":{"artist":"House Of Pain","title":"Jump Around","year":1992},"212":{"artist":"Sinéad O'Connor","title":"Nothing Compares 2 U","year":1990},"213":{"artist":"Rammstein","title":"Engel","year":1997},"214":{"artist":"Kelly Clarkson","title":"Because Of You","year":2005},"215":{"artist":"Echt","title":"Du trägst keine Liebe in dir","year":1999},"216":{"artist":"Stevie Wonder","title":"Part-Time Lovers","year":1985},"217":{"artist":"Dire Straits","title":"Walk Of Life","year":1985},"218":{"artist":"Ace Of Base","title":"All That She Wants","year":1992},"219":{"artist":"Die Prinzen","title":"Alles nur geklaut","year":1993},"22":{"artist":"Cro","title":"Einmal um die Welt","year":2012},"220":{"artist":"ABBA","title":"Waterloo","year":1974},"221":{"artist":"Bryan Adams","title":"Heaven","year":1985},"222":{"artist":"Tokio Hotel","title":"Durch den Monsun","year":2005},"223":{"artist":"Little Eva","title":"The Loco-Motion","year":1962},"224":{"artist":"Nirvana","title":"Smells Like Teen Spirit","year":1991},"225":{"artist":"Lenny Kravitz","title":"Fly Away","year":1998},"226":{"artist":"Bronski Beat","title":"Smalltown Boy","year":1984},"227":{"artist":"Johnny Cash","title":"Ring of Fire","year":1963},"228":{"artist":"Nancy Sinatra","title":"These Boots Are Made For Walkin'","year":1965},"229":{"artist":"Jessie J (feat. B.O.B)","cat":"Legacy","title":"Price Tag","year":2011},"23":{"artist":"Trude Herr","title":"Ich will keine Schokolade","year":1960},"230":{"artist":"Caterina Valente & Silvio Francesco","cat":"Legacy","title":"Itsy Bitsy Teenie Weenie Honolulu Strand Bikini","year":1960},"231":{"artist":"Snow","title":"Informer","year":1992},"232":{"artist":"Silbermond","title":"Das Beste","year":2006},"233":{"artist":"Kool & The Gang","title":"Celebration","year":1980},"234":{"artist":"Cher","title":"Believe","year":1998},"235":{"artist":"Amii Stewart","title":"Knock On Wood","year":1979},"236":{"artist":"Duffy","title":"Mercy","year":2008},"237":{"artist":"Sister Sledge","title":"We Are Family","year":1979},"238":{"artist":"Mungo Jerry","title":"In The Summertime","year":1970},"239":{"artist":"Mark Morrison","title":"Return Of The Mack","year":1996},"24":{"artist":"Max Giesinger","title":"80 Millionen","year":2016},"240":{"artist":"Bill Ramsey","title":"Zuckerpuppe (aus der Bauchtanz-Truppe)","year":1961},"241":{"artist":"Vaya Con Dios","title":"Nah Neh Nah","year":1990},"242":{"artist":"Fettes Brot","title":"Emanuela","year":2005},"243":{"artist":"Spider Murphy Gang","title":"Skandal im Sperrbezirk","year":1981},"244":{"artist":"Bon Jovi","title":"It's My Life","year":2000},"245":{"artist":"Caterina Valente","title":"Ganz Paris träumt von der Liebe","year":1954},"246":{"artist":"Beyoncé feat. Jay-Z","title":"Crazy In Love","year":2003},"247":{"artist":"The Weeknd","title":"Blinding Lights","year":2019},"248":{"artist":"Freddy Quinn","title":"Die Gitarre und das Meer","year":1959},"249":{"artist":"Eagle-Eye Cherry","title":"Save Tonight","year":1997},"25":{"artist":"The Cure","title":"Friday I'm In Love","year":1992},"250":{"artist":"Simply Red","title":"Holding Back The Years","year":1985},"251":{"artist":"Die Firma","title":"Die Eine","year":1998},"252":{"artist":"Klaus Lage","title":"1000 und 1 Nacht (Zoom!)","year":1984},"253":{"artist":"Wincent Weiss & Johannes Oerding","title":"Die guten Zeiten","year":2021},"254":{"artist":"Post Malone","title":"Circles","year":2019},"255":{"artist":"Drafi Deutscher","title":"Marmor, Stein und Eisen bricht","year":1965},"256":{"artist":"Annie Lennox","title":"Why","year":1992},"257":{"artist":"Sia","title":"Cheap Thrills","year":2015},"258":{"artist":"Queen feat. David Bowie","title":"Under Pressure","year":1981},"259":{"artist":"Jay-Z & Linkin Park","title":"Numb/Encore","year":2004},"26":{"artist":"Haddaway","title":"What Is Love","year":1993},"260":{"artist":"The Beach Boys","title":"Good Vibrations","year":1966},"261":{"artist":"Fats Domino","title":"Ain't That A Shame","year":1955},"262":{"artist":"U96","title":"Das Boot","year":1992},"263":{"artist":"Fatboy Slim","title":"Praise You","year":1999},"264":{"artist":"Enrique Iglesias & Whitney Houston","title":"Could I Have This Kiss Forever","year":2000},"265":{"artist":"Peter Schilling","title":"Major Tom (völlig losgelöst)","year":1982},"266":{"artist":"Black Eyed Peas","title":"Where Is The Love?","year":2003},"267":{"artist":"Shaggy","title":"It Wasn't Me","year":2000},"268":{"artist":"Tones And I","title":"Dance Monkey","year":2019},"269":{"artist":"Betty Everett","title":"It's In His Kiss (The Shoop Shoop Song)","year":1964},"27":{"artist":"Andreas Bourani","title":"Auf uns","year":2014},"270":{"artist":"James Brown & The Famous Flames","title":"I Got You (I Feel Good)","year":1965},"271":{"artist":"Akon","title":"Lonely","year":2005},"272":{"artist":"Rick James","title":"Super Freak","year":1981},"273":{"artist":"Michael Holm","title":"Tränen lügen nicht","year":1974},"274":{"artist":"Percy Sledge","cat":"Legacy","title":"When A Man Loves A Woman","year":1966},"275":{"artist":"Linda Ronstadt","title":"Blue Bayou","year":1977},"276":{"artist":"Dolly Parton","title":"Jolene","year":1973},"277":{"artist":"Mad'House","title":"Like A Prayer","year":2002},"278":{"artist":"Dean Martin","title":"That's Amore","year":1953},"279":{"artist":"Billy Joel","title":"Piano Man","year":1973},"28":{"artist":"Journey","title":"Don't Stop Believin'","year":1981},"280":{"artist":"Wencke Myhre","title":"Er hat ein knallrotes Gummiboot","year":1970},"281":{"artist":"David Bowie","title":"Space Oddity","year":1969},"282":{"artist":"Justin Bieber","title":"Anyone","year":2021},"283":{"artist":"Alessia Cara","title":"Scars To Your Beautiful","year":2016},"284":{"artist":"The Beatles","title":"Get Back","year":1969},"285":{"artist":"Shakira","title":"Waka Waka (This Time For Africa)","year":2010},"286":{"artist":"Bryan Ferry","title":"Let's Stick Together","year":1976},"287":{"artist":"Corinne Bailey Rae","title":"Put Your Records On","year":2006},"288":{"artist":"Vanilla Ice","title":"Ice Ice Baby","year":1990},"289":{"artist":"Leo Sayer","title":"When I Need You","year":1977},"29":{"artist":"Enya","title":"Orinoco Flow","year":1988},"290":{"artist":"Billie Eilish","title":"Bad Guy","year":2019},"291":{"artist":"Portugal. The Man","title":"Feel It Still","year":2017},"292":{"artist":"Lady Gaga & Bradley Cooper","title":"Shallow","year":2018},"293":{"artist":"Ich + Ich","title":"Vom selben Stern","year":2007},"294":{"artist":"Train","title":"Hey, Soul Sister","year":2009},"295":{"artist":"Elvis Presley","title":"Can't Help Falling In Love","year":1961},"296":{"artist":"Eric Prydz","title":"Call On Me","year":2004},"297":{"artist":"Marvin Gaye","title":"I Heard It Through The Grapevine","year":1968},"298":{"artist":"Jürgen Drews","title":"Ein Bett im Kornfeld","year":1976},"299":{"artist":"Toploader","title":"Dancing In The Moonlight","year":2000},"3":{"artist":"The Rolling Stones","title":"Start Me Up","year":1981},"30":{"artist":"Reinhard Mey","title":"Über den Wolken","year":1974},"300":{"artist":"Rupert Holmes","title":"Escape (The Piña Colada Song)","year":1979},"301":{"artist":"Imagine Dragons","title":"Thunder","year":2017},"302":{"artist":"Roy Orbison","cat":"Legacy","title":"Oh, Pretty Woman","year":1964},"303":{"artist":"The Chordettes","title":"Lollipop","year":1958},"304":{"artist":"Bob Marley & The Wailers","cat":"Legacy","title":"No Woman No Cry","year":1974},"305":{"artist":"Aretha Franklin","title":"Respect","year":1967},"306":{"artist":"Jimmy Cliff","title":"You Can Get It If You Really Want","year":1970},"307":{"artist":"Sam The Sham & The Pharaohs","title":"Wooly Bully","year":1965},"308":{"artist":"Owl City","title":"Fireflies","year":2009},"31":{"artist":"Amy Winehouse","title":"Rehab","year":2006},"32":{"artist":"Siw Malmkvist","title":"Liebeskummer lohnt sich nicht","year":1964},"33":{"artist":"Sylvester","title":"You Make Me Feel (Mighty Real)","year":1978},"34":{"artist":"Lynyrd Skynyrd","title":"Sweet Home Alabama","year":1974},"35":{"artist":"The Hollies","title":"He Ain't Heavy, He's My Brother","year":1969},"36":{"artist":"Jürgen Marcus","title":"Eine neue Liebe ist wie ein neues Leben","year":1972},"37":{"artist":"The Bangles","title":"Manic Monday","year":1986},"38":{"artist":"Meat Loaf","title":"Paradise By The Dashboard Light","year":1978},"39":{"artist":"Limahl","title":"Never Ending Story","year":1984},"4":{"artist":"Chubby Checker","title":"The Twist","year":1960},"40":{"artist":"Mabel","title":"Don't Call Me Up","year":2019},"41":{"artist":"Red Hot Chili Peppers","title":"Under The Bridge","year":1992},"42":{"artist":"Rio Reiser","title":"König von Deutschland","year":1986},"43":{"artist":"Diana Ross","title":"Upside Down","year":1980},"44":{"artist":"No Doubt","title":"Don't Speak","year":1996},"45":{"artist":"The Rolling Stones","title":"(I Can't Get No) Satisfaction","year":1965},"46":{"artist":"Nelly (feat. Kelly Rowland)","title":"Dilemma","year":2002},"47":{"artist":"The Kinks","title":"Lola","year":1970},"48":{"artist":"Captain Jack","title":"Captain Jack","year":1995},"49":{"artist":"Cyndi Lauper","title":"True Colors","year":1986},"5":{"artist":"Robin Thicke, T.I. & Pharrell","title":"Blurred Lines","year":2013},"50":{"artist":"Outkast","title":"Hey Ya!","year":2003},"51":{"artist":"Joseíto Fernández","title":"Guajira Guantanamera","year":1929},"52":{"artist":"Álvaro Soler","title":"La Cintura","year":2018},"53":{"artist":"Anastacia","title":"Sick and Tired","year":2004},"54":{"artist":"Chicago","cat":"Legacy","title":"If You Leave Me Now","year":1976},"55":{"artist":"Udo Jürgens","title":"Siebzehn Jahr, blondes Haar","year":1965},"56":{"artist":"Sophie Ellis-Bextor","cat":"Legacy","title":"Murder On The Dancefloor","year":2001},"57":{"artist":"Dr. Alban","cat":"Legacy","title":"Hallelujah! Sing","year":1993},"58":{"artist":"Adele","cat":"Legacy","title":"Set Fire To The Rain","year":2011},"59":{"artist":"Blümchen","cat":"Legacy","title":"Herz an Herz","year":1996},"6":{"artist":"Taio Cruz","title":"Hangover","year":2011},"60":{"artist":"Die Toten Hosen","cat":"Legacy","title":"Tage wie diese","year":2012},"61":{"artist":"Neil Diamond","cat":"Legacy","title":"Sweet Caroline","year":1969},"62":{"artist":"Manfred Mann","cat":"Legacy","title":"Do Wah Diddy Diddy","year":1964},"63":{"artist":"Karat","title":"Über sieben Brücken musst du gehen","year":1978},"64":{"artist":"Thelma Houston","cat":"Legacy","title":"Don't Leave Me This Way","year":1976},"65":{"artist":"Macklemore & Ryan Lewis (feat. Ray Dalton)","cat":"Legacy","title":"Can't Hold Us","year":2011},"66":{"artist":"Enrique Iglesias","title":"Do You Know? (The Ping Pong Song)","year":2007},"67":{"artist":"Tic Tac Toe","cat":"Legacy","title":"Warum","year":1997},"68":{"artist":"Eddy Grant","title":"Gimme Hope Jo'anna","year":1988},"69":{"artist":"Scorpions","title":"Wind of Change","year":1991},"7":{"artist":"Daft Punk","title":"One More Time","year":2000},"70":{"artist":"Chic","cat":"Legacy","title":"Le Freak","year":1978},"71":{"artist":"Peter Fox","cat":"Legacy","title":"Haus am See","year":2008},"72":{"artist":"Lady Gaga","cat":"Legacy","title":"Poker Face","year":2008},"73":{"artist":"Bonnie Tyler","cat":"Legacy","title":"It's A Heartache","year":1977},"74":{"artist":"Chuck Berry","cat":"Legacy","title":"Johnny B. Goode","year":1958},"75":{"artist":"Billy Idol","cat":"Legacy","title":"White Wedding","year":1982},"76":{"artist":"Enrico Caruso","cat":"Legacy","title":"La Donna 2 Mobile (Rigoletto)","year":1908},"77":{"artist":"Avicii","cat":"Legacy","title":"Without You","year":2017},"78":{"artist":"Gipsy Kings","cat":"Legacy","title":"Volare (Nel Blu Di Pinto Di Blu)","year":1989},"79":{"artist":"Plastic Bertrand","cat":"Legacy","title":"Ca Plane Pour Moi","year":1977},"8":{"artist":"T'Pau","title":"China In Your Hand","year":1987},"80":{"artist":"Patrick Hernandez","cat":"Legacy","title":"Born To Be Alive","year":1978},"81":{"artist":"Led Zeppelin","cat":"Legacy","title":"Whole Lotta Love","year":1969},"82":{"artist":"Sportfreunde Stiller","cat":"Legacy","title":"Ein Kompliment","year":2002},"83":{"artist":"Glenn Miller","cat":"Legacy","title":"In The Mood","year":1939},"84":{"artist":"Wolfgang Petry","cat":"Legacy","title":"Wahnsinn","year":1983},"85":{"artist":"OneRepublic","title":"Counting Stars","year":2013},"86":{"artist":"O-Zone","title":"Dragostea Din Tei","year":2003},"87":{"artist":"REM.","cat":"Legacy","title":"Everybody Hurts","year":1992},"88":{"artist":"P!nk (feat. Nate Ruess)","title":"Just Give Me A Reason","year":2013},"89":{"artist":"Roxette","cat":"Legacy","title":"Joyride","year":1991},"9":{"artist":"Tina Turner","title":"The Best","year":1989},"90":{"artist":"Bill Haley & His Comets","cat":"Legacy","title":"(We're Gonna) Rock Around The Clock","year":1954},"91":{"artist":"Kim Carnes","cat":"Legacy","title":"Bette Davis Eyes","year":1981},"92":{"artist":"Kaoma","cat":"Legacy","title":"Lambada","year":1989},"93":{"artist":"Rufus (feat. Chaka Khan)","cat":"Legacy","title":"Ain't Nobody","year":1983},"94":{"artist":"Creedence Clearwater Revival","cat":"Legacy","title":"Have You Ever Seen the Rain?","year":1971},"95":{"artist":"Bill Medley & Jennifer Warnes","cat":"Legacy","title":"(I've Had) The Time Of My Life","year":1987},"96":{"artist":"Eros Ramazzotti","cat":"Legacy","title":"Piu Bella Cosa","year":1996},"97":{"artist":"Genesis","cat":"Legacy","title":"No Son of Mine","year":1991},"98":{"artist":"Pharrell Williams","title":"Happy","year":2013},"99":{"artist":"Oasis","cat":"Legacy","title":"Wonderwall","year":1995}};
+
+let DB = {};
+async function loadDB() {
+  const applyDefaults = (src) => {
+    const out = {};
+    for (const [k, v] of Object.entries(src)) out[k] = { cat: 'Legacy', ...v };
+    return out;
+  };
+
+  DB = applyDefaults(EMBEDDED_DB);
+  try {
+    const r = await fetch('hitstar_db.json?v=' + Date.now());
+    const scanned = await r.json();
+    DB = { ...DB, ...applyDefaults(scanned) };
+    console.log(`DB geladen: ${Object.keys(DB).length} Karten`);
+  } catch(e) {
+    console.log(`DB aus HTML: ${Object.keys(DB).length} Karten`);
+  }
+  renderCategories();
+}
+
+function getCategories() {
+  return [...new Set(Object.values(DB).map(c => c.cat))].sort();
+}
+
+function getActiveDB() {
+  if (!selectedCategories.size) return DB;
+  return Object.fromEntries(Object.entries(DB).filter(([, v]) => selectedCategories.has(v.cat)));
+}
+
+function renderCategories() {
+  const cats = getCategories();
+  selectedCategories = new Set(cats); // alle aktiv by default
+  const container = document.getElementById('category-pills');
+  const catColors  = ['#c850c0','#4158d0','#f7971e','#56ab2f','#00b4db','#ff6b6b'];
+  container.innerHTML = cats.map((cat, i) => `
+    <div class="cat-pill active" id="catpill-${cat}" onclick="toggleCategory('${cat}')">
+      <div class="cat-dot" style="background:${catColors[i % catColors.length]}"></div>
+      ${cat}
+      <span id="catcount-${cat}" style="opacity:.6;font-size:.75rem">${Object.values(DB).filter(c=>c.cat===cat).length}</span>
+    </div>`).join('');
+}
+
+function toggleCategory(cat) {
+  if (selectedCategories.has(cat)) {
+    if (selectedCategories.size === 1) return; // mindestens eine aktiv lassen
+    selectedCategories.delete(cat);
+    document.getElementById(`catpill-${cat}`)?.classList.remove('active');
+  } else {
+    selectedCategories.add(cat);
+    document.getElementById(`catpill-${cat}`)?.classList.add('active');
+  }
+}
+
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const COLORS = ['#c850c0','#4158d0','#f7971e','#56ab2f','#00b4db','#ff6b6b'];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let players    = [];
+let scores     = {};
+let results    = [];
+let rIdx       = 0;
+let current    = null;
+let gameMode   = 'battle';
+let playedCards = new Set();
+let selectedCategories = new Set();
+
+// ── MODE SELECTION ────────────────────────────────────────────────────────────
+function selectMode(mode) {
+  gameMode = mode;
+  document.querySelectorAll('.mode-card:not(.disabled)').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`mode-${mode}`)?.classList.add('selected');
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────────────────
+function addPlayer(name = '') {
+  const container = document.getElementById('player-inputs');
+  const i = container.children.length;
+  if (i >= 6) return;
+  const div = document.createElement('div');
+  div.className = 'player-row';
+  div.innerHTML = `
+    <div class="player-dot" style="background:${COLORS[i]}"></div>
+    <input type="text" placeholder="Spieler ${i+1}" value="${name}">
+    <button class="btn btn-secondary btn-sm" style="width:auto;padding:7px 10px"
+            onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(div);
+}
+
+function startGame() {
+  const inputs = document.querySelectorAll('#player-inputs input');
+  players = [];
+  scores  = {};
+  inputs.forEach((inp, i) => {
+    const name = inp.value.trim() || `Spieler ${i+1}`;
+    players.push({ name, color: COLORS[i] });
+    scores[name] = 0;
+  });
+  if (!players.length) return;
+  playedCards = new Set();
+  renderScorebar();
+  show('screen-game');
+  phase('input');
+}
+
+// ── SCREENS & PHASES ──────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function phase(name) {
+  ['input','playing','confirm','reveal'].forEach(p => {
+    const el = document.getElementById(`phase-${p}`);
+    if (!el) return;
+    if (p === name) {
+      el.classList.remove('hidden');
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
+  });
+  if (name === 'input') {
+    const isBattle = gameMode === 'battle';
+    document.getElementById('input-battle').classList.toggle('hidden', !isBattle);
+    document.getElementById('manual-card').classList.add('hidden');
+    document.getElementById('input-random').classList.toggle('hidden', isBattle);
+    if (isBattle) {
+      document.getElementById('card-num').value = '';
+      setTimeout(() => document.getElementById('card-num').focus(), 50);
+    } else {
+      const activeDB  = getActiveDB();
+      const total     = Object.keys(activeDB).length;
+      const remaining = Object.keys(activeDB).filter(k => !playedCards.has(k)).length;
+      document.getElementById('random-db-info').textContent =
+        `${remaining} von ${total} Songs übrig`;
+      document.getElementById('random-hint').textContent = '';
+    }
+  }
+}
+
+// ── SCOREBAR ──────────────────────────────────────────────────────────────────
+function renderScorebar() {
+  document.getElementById('scorebar').innerHTML = players.map(p => `
+    <div class="score-pill" id="pill-${CSS.escape(p.name)}">
+      <div class="sname" style="color:${p.color}">${p.name}</div>
+      <div class="spts">${scores[p.name]} ♪</div>
+    </div>`).join('');
+}
+
+// ── CARD LOOKUP ───────────────────────────────────────────────────────────────
+async function lookupCard() {
+  const num = parseInt(document.getElementById('card-num').value);
+  if (!num) return;
+  const entry = DB[String(num)];
+  if (entry) {
+    if (!selectedCategories.has(entry.cat)) {
+      const ok = confirm(`Karte ${num} gehört zu „${entry.cat}" – aktuell nicht aktiv.\nTrotzdem abspielen?`);
+      if (!ok) return;
+    }
+    await searchItunes(entry.artist, entry.title, entry.year);
+  } else {
+    document.getElementById('manual-card').classList.remove('hidden');
+  }
+}
+
+async function searchManual() {
+  const artist = document.getElementById('m-artist').value.trim();
+  const title  = document.getElementById('m-title').value.trim();
+  if (!artist && !title) return;
+  await searchItunes(artist, title, null);
+}
+
+// ── RANDOM MODE ───────────────────────────────────────────────────────────────
+function drawRandomSong() {
+  const activeDB  = getActiveDB();
+  const allKeys   = Object.keys(activeDB);
+  if (!allKeys.length) {
+    document.getElementById('random-hint').textContent = '⚠️ Kein aktives Karten-Set – mindestens eine Kategorie wählen.';
+    return;
+  }
+  const remaining = allKeys.filter(k => !playedCards.has(k));
+  if (!remaining.length) {
+    document.getElementById('random-hint').textContent = '🎉 Alle Songs gespielt! Spiel beenden oder neu starten.';
+    return;
+  }
+  const key   = remaining[Math.floor(Math.random() * remaining.length)];
+  const entry = activeDB[key];
+  playedCards.add(key);
+  searchItunes(entry.artist, entry.title, entry.year);
+}
+
+// ── ITUNES SEARCH ─────────────────────────────────────────────────────────────
+async function searchItunes(artist, title, dbYear) {
+  phase('playing');
+  document.getElementById('spinner').classList.remove('hidden');
+  document.getElementById('vinyl').style.animationPlayState = 'paused';
+  document.getElementById('play-hint').textContent = 'Song wird gesucht…';
+  stopAudio();
+
+  const q = encodeURIComponent(`${artist} ${title}`);
+  try {
+    const resp = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=song&limit=8&country=de`);
+    const data = await resp.json();
+    results = data.results || [];
+    rIdx    = 0;
+    if (!results.length) {
+      document.getElementById('spinner').classList.add('hidden');
+      document.getElementById('play-hint').textContent = '⚠️ Kein Ergebnis gefunden.';
+      return;
+    }
+    playResult(rIdx, dbYear);
+  } catch(e) {
+    document.getElementById('spinner').classList.add('hidden');
+    document.getElementById('play-hint').textContent = '⚠️ Netzwerkfehler.';
+  }
+}
+
+function playResult(idx, dbYear = null) {
+  const r = results[idx];
+  if (!r) return;
+  const itunesYear = r.releaseDate ? new Date(r.releaseDate).getFullYear() : null;
+  current = {
+    title:      r.trackName,
+    artist:     r.artistName,
+    year:       dbYear ?? itunesYear,
+    artwork:    (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+    previewUrl: r.previewUrl || null,
+    dbYear
+  };
+
+  document.getElementById('spinner').classList.add('hidden');
+
+  // Audio
+  const audio = document.getElementById('audio');
+  if (current.previewUrl) {
+    audio.src = current.previewUrl;
+    audio.play().catch(() => {});
+    document.getElementById('vinyl').style.animationPlayState = 'running';
+    document.getElementById('play-hint').textContent = '🎵 Song läuft… wann war das?';
+    document.getElementById('btn-pause').textContent = '⏸ Pause';
+    audio.ontimeupdate = () => {
+      const cur = audio.currentTime, dur = audio.duration || 30;
+      document.getElementById('prog-fill').style.width = (cur / dur * 100) + '%';
+      document.getElementById('prog-time').textContent = `${fmt(cur)} / ${fmt(dur)}`;
+    };
+  } else {
+    document.getElementById('vinyl').style.animationPlayState = 'paused';
+    document.getElementById('play-hint').textContent = '⚠️ Kein Vorschau-Audio verfügbar.';
+  }
+}
+
+function tryNextResult() {
+  rIdx++;
+  if (rIdx >= results.length) {
+    document.getElementById('play-hint').textContent = 'Keine weiteren Treffer.';
+    return;
+  }
+  stopAudio();
+  playResult(rIdx, current?.dbYear);
+}
+
+function togglePlay() {
+  const audio = document.getElementById('audio');
+  const btn   = document.getElementById('btn-pause');
+  const vinyl = document.getElementById('vinyl');
+  if (audio.paused) {
+    audio.play();
+    btn.textContent = '⏸ Pause';
+    vinyl.style.animationPlayState = 'running';
+  } else {
+    audio.pause();
+    btn.textContent = '▶ Weiter';
+    vinyl.style.animationPlayState = 'paused';
+  }
+}
+
+function stopAudio() {
+  const audio = document.getElementById('audio');
+  audio.pause(); audio.src = '';
+  document.getElementById('prog-fill').style.width = '0';
+  document.getElementById('prog-time').textContent = '0:00 / 0:30';
+  document.getElementById('vinyl').style.animationPlayState = 'paused';
+}
+
+// ── CONFIRM ───────────────────────────────────────────────────────────────────
+function goToConfirm() {
+  const audio = document.getElementById('audio');
+  audio.pause();
+  document.getElementById('vinyl').style.animationPlayState = 'paused';
+  document.getElementById('btn-pause').textContent = '▶ Weiter';
+  phase('confirm');
+}
+
+function backToPlaying() {
+  phase('playing');
+  const audio = document.getElementById('audio');
+  audio.play().catch(() => {});
+  document.getElementById('vinyl').style.animationPlayState = 'running';
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+}
+
+// ── REVEAL ────────────────────────────────────────────────────────────────────
+function doReveal() {
+  stopAudio();
+  if (!current) return;
+
+  document.getElementById('rev-title').textContent  = current.title;
+  document.getElementById('rev-artist').textContent = current.artist;
+
+  const yearEl = document.getElementById('rev-year');
+  yearEl.textContent = current.year ?? '?';
+  yearEl.classList.remove('year-pop');
+  void yearEl.offsetWidth;
+  yearEl.classList.add('year-pop');
+
+  const artEl = document.getElementById('art-reveal');
+  artEl.innerHTML = current.artwork ? `<img src="${current.artwork}">` : '🎵';
+
+  document.getElementById('award-grid').innerHTML = players.map(p => `
+    <button class="award-btn" onclick="pickWinner('${p.name}', this)"
+            style="border-color:${p.color}44">
+      <span style="color:${p.color}; font-size:1.1em">●</span><br>${p.name}
+    </button>`).join('');
+
+  document.getElementById('btn-next').disabled = true;
+  phase('reveal');
+}
+
+let pendingWinner = null;
+function pickWinner(name, btn) {
+  document.querySelectorAll('.award-btn').forEach(b => b.classList.remove('picked'));
+  btn.classList.add('picked');
+  pendingWinner = name;
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextCard() {
+  if (pendingWinner) {
+    scores[pendingWinner]++;
+    renderScorebar();
+    const pill = document.querySelector(`#pill-${CSS.escape(pendingWinner)}`);
+    if (pill) { pill.classList.add('winner'); setTimeout(() => pill.classList.remove('winner'), 1800); }
+    pendingWinner = null;
+  }
+  current = null;
+  phase('input');
+}
+
+function skipCard() {
+  stopAudio();
+  pendingWinner = null;
+  current = null;
+  phase('input');
+}
+
+// ── END GAME ──────────────────────────────────────────────────────────────────
+function showEndGame() {
+  stopAudio();
+  const sorted = [...players].sort((a, b) => scores[b.name] - scores[a.name]);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('final-scores').innerHTML = sorted.map((p, i) => `
+    <div class="final-row">
+      <div class="final-rank">${medals[i] || `${i+1}.`}</div>
+      <div class="final-name" style="color:${p.color}">${p.name}</div>
+      <div class="final-pts">${scores[p.name]} ♪</div>
+    </div>`).join('');
+  show('screen-end');
+}
+
+function resetGame() { show('screen-setup'); }
+
+function goHome() {
+  stopAudio();
+  pendingWinner = null;
+  current = null;
+  playedCards = new Set();
+  show('screen-setup');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(sec) {
+  const s = Math.floor(sec);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadDB();
+  addPlayer('Spieler 1');
+  addPlayer('Spieler 2');
+  addPlayer('Spieler 3');
+});
+</script>
+</body>
+</html>

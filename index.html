@@ -986,8 +986,9 @@ function goHome() {
 }
 
 // ── QR SCANNER ────────────────────────────────────────────────────────────────
-let scanStream  = null;
-let scanAnimId  = null;
+let scanStream = null;
+let scanVfcId  = null;   // requestVideoFrameCallback handle (iOS Safari)
+let scanTimer  = null;   // setTimeout handle (Fallback)
 
 async function openScanner() {
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -998,68 +999,68 @@ async function openScanner() {
   document.getElementById('qr-status').textContent = 'Kamera wird gestartet…';
   try {
     scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
     });
     const video = document.getElementById('qr-video');
     video.srcObject = scanStream;
     await video.play();
     document.getElementById('qr-status').textContent = 'QR-Code auf die Karte richten…';
-    scanQRLoop();
+    scheduleScan(video);
   } catch(e) {
     document.getElementById('qr-status').textContent = '⚠️ Kamera nicht verfügbar: ' + e.message;
   }
 }
 
 function closeScanner() {
-  if (scanAnimId) { cancelAnimationFrame(scanAnimId); scanAnimId = null; }
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
   const video = document.getElementById('qr-video');
+  if (scanVfcId !== null) { video.cancelVideoFrameCallback?.(scanVfcId); scanVfcId = null; }
+  if (scanTimer  !== null) { clearTimeout(scanTimer); scanTimer = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
   video.srcObject = null;
   document.getElementById('qr-overlay').classList.add('hidden');
 }
 
-let lastScanTime = 0;
-function scanQRLoop() {
-  const now = Date.now();
-  if (now - lastScanTime < 100) {          // max ~10fps – schont iPhone-CPU
-    scanAnimId = requestAnimationFrame(scanQRLoop);
-    return;
+function scheduleScan(video) {
+  // requestVideoFrameCallback garantiert einen lesbaren Frame – entscheidend auf iOS Safari
+  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    scanVfcId = video.requestVideoFrameCallback(() => { scanVfcId = null; processScanFrame(video); });
+  } else {
+    scanTimer = setTimeout(() => { scanTimer = null; processScanFrame(video); }, 150);
   }
-  lastScanTime = now;
+}
 
-  const video  = document.getElementById('qr-video');
+function processScanFrame(video) {
+  if (!scanStream) return;
   const canvas = document.getElementById('qr-canvas');
-  if (!video.videoWidth || video.paused || video.ended) {
-    scanAnimId = requestAnimationFrame(scanQRLoop);
-    return;
-  }
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
+  if (!video.videoWidth) { scheduleScan(video); return; }
+
+  // Canvas auf max 640px skalieren – spart CPU, jsQR erkennt trotzdem zuverlässig
+  const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+  const w = Math.round(video.videoWidth  * scale);
+  const h = Math.round(video.videoHeight * scale);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(video, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+  ctx.drawImage(video, 0, 0, w, h);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const code = jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+
   if (code) {
     console.log('QR erkannt:', code.data);
-    // Zeige rohen Inhalt – hilft beim Debuggen des URL-Formats
     document.getElementById('qr-status').textContent = '✓ ' + code.data;
-    // Hitstar QR-Format: hitstergame.com/de/00069  (ggf. mit trailing slash)
     const match = code.data.match(/\/(\d+)\/?$/);
     if (match) {
-      const num = parseInt(match[1], 10);
       closeScanner();
-      document.getElementById('card-num').value = num;
+      document.getElementById('card-num').value = parseInt(match[1], 10);
       lookupCard();
       return;
     }
-    // QR erkannt, aber falsches Format → kurz anzeigen, dann weitermachen
+    // QR erkannt, aber kein Hitstar-Format → kurz anzeigen, dann weiterscannen
     setTimeout(() => {
-      if (scanAnimId !== null) {
-        document.getElementById('qr-status').textContent = 'QR-Code auf die Karte richten…';
-      }
-    }, 2500);
+      if (scanStream) document.getElementById('qr-status').textContent = 'QR-Code auf die Karte richten…';
+    }, 2000);
   }
-  scanAnimId = requestAnimationFrame(scanQRLoop);
+  scheduleScan(video);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────

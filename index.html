@@ -179,6 +179,20 @@
     .award-btn:hover  { border-color: var(--yellow); }
     .award-btn.picked { border-color: var(--yellow); background: rgba(247,151,30,.15); }
 
+    /* ── POINT TILES (Unterwegs-Modus) ── */
+    .point-tile {
+      padding: 14px 8px; border: 2px solid var(--border); border-radius: var(--r);
+      background: var(--surface); color: var(--text);
+      cursor: pointer; transition: all .15s; text-align: center; user-select: none;
+      -webkit-user-select: none;
+    }
+    .point-tile:hover { border-color: var(--accent); }
+    .point-tile.selected { border-color: var(--green); background: rgba(86,171,47,.18); }
+    .point-tile .tile-pts { font-size: 1.8rem; font-weight: 900; color: var(--yellow); line-height: 1; }
+    .point-tile .tile-label { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .turn-info { font-size: 0.95rem; font-weight: 700; padding: 8px 0 4px; }
+    .pts-sum { font-size: 1rem; font-weight: 700; color: var(--green); margin: 8px 0 4px; min-height: 1.4em; }
+
     /* ── UTILS ── */
     .hidden  { display: none !important; }
     .center  { text-align: center; }
@@ -249,10 +263,26 @@
     <div id="category-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
 
-  <div class="card">
+  <!-- Classic-Modus: flexible Spieleranzahl -->
+  <div class="card" id="player-card-battle">
     <div class="label">Spieler</div>
     <div id="player-inputs"></div>
     <button class="btn btn-secondary btn-sm mt8" onclick="addPlayer()">+ Spieler hinzufügen</button>
+  </div>
+
+  <!-- Unterwegs-Modus: genau 2 Spieler -->
+  <div class="card hidden" id="player-card-random">
+    <div class="label">Spieler (2)</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="player-row">
+        <div class="player-dot" style="background:#c850c0"></div>
+        <input type="text" id="random-p1" placeholder="Spieler 1" value="Spieler 1">
+      </div>
+      <div class="player-row">
+        <div class="player-dot" style="background:#4158d0"></div>
+        <input type="text" id="random-p2" placeholder="Spieler 2" value="Spieler 2">
+      </div>
+    </div>
   </div>
 
   <div class="w480">
@@ -289,6 +319,7 @@
 
     <!-- Unterwegs-Modus: Song ziehen -->
     <div id="input-random" class="card center hidden">
+      <div id="random-turn-banner" class="turn-info" style="margin-bottom:4px"></div>
       <div style="font-size:3rem;margin-bottom:8px">🎲</div>
       <div id="random-db-info" class="muted mt8"></div>
       <button class="btn btn-primary mt16" onclick="drawRandomSong()">Song ziehen ▶</button>
@@ -333,8 +364,10 @@
     <div class="song-name"   id="rev-title"></div>
     <div class="song-artist" id="rev-artist"></div>
     <div class="year-big"    id="rev-year"></div>
-    <p class="muted">Wer bekommt die Karte?</p>
+    <p class="muted" id="award-label">Wer bekommt die Karte?</p>
+    <div id="reveal-turn-info" class="turn-info hidden"></div>
     <div class="award-grid" id="award-grid"></div>
+    <div id="pts-sum-display" class="pts-sum hidden"></div>
     <div class="btn-row mt8">
       <button class="btn btn-secondary" onclick="skipCard()">Überspringen</button>
       <button class="btn btn-success" id="btn-next" onclick="nextCard()" disabled>Nächste Karte →</button>
@@ -424,12 +457,15 @@ let current    = null;
 let gameMode   = 'battle';
 let playedCards = new Set();
 let selectedCategories = new Set();
+let currentTurn = 0;
 
 // ── MODE SELECTION ────────────────────────────────────────────────────────────
 function selectMode(mode) {
   gameMode = mode;
   document.querySelectorAll('.mode-card:not(.disabled)').forEach(c => c.classList.remove('selected'));
   document.getElementById(`mode-${mode}`)?.classList.add('selected');
+  document.getElementById('player-card-battle').classList.toggle('hidden', mode !== 'battle');
+  document.getElementById('player-card-random').classList.toggle('hidden', mode !== 'random');
 }
 
 // ── SETUP ─────────────────────────────────────────────────────────────────────
@@ -448,15 +484,25 @@ function addPlayer(name = '') {
 }
 
 function startGame() {
-  const inputs = document.querySelectorAll('#player-inputs input');
   players = [];
   scores  = {};
-  inputs.forEach((inp, i) => {
-    const name = inp.value.trim() || `Spieler ${i+1}`;
-    players.push({ name, color: COLORS[i] });
-    scores[name] = 0;
-  });
-  if (!players.length) return;
+  if (gameMode === 'random') {
+    const n1 = document.getElementById('random-p1').value.trim() || 'Spieler 1';
+    const n2 = document.getElementById('random-p2').value.trim() || 'Spieler 2';
+    [n1, n2].forEach((name, i) => {
+      players.push({ name, color: COLORS[i] });
+      scores[name] = 0;
+    });
+    currentTurn = 0;
+  } else {
+    const inputs = document.querySelectorAll('#player-inputs input');
+    inputs.forEach((inp, i) => {
+      const name = inp.value.trim() || `Spieler ${i+1}`;
+      players.push({ name, color: COLORS[i] });
+      scores[name] = 0;
+    });
+    if (!players.length) return;
+  }
   playedCards = new Set();
   renderScorebar();
   show('screen-game');
@@ -496,6 +542,12 @@ function phase(name) {
       document.getElementById('random-db-info').textContent =
         `${remaining} von ${total} Songs übrig`;
       document.getElementById('random-hint').textContent = '';
+      const p = players[currentTurn];
+      if (p) {
+        const banner = document.getElementById('random-turn-banner');
+        banner.textContent = `${p.name} ist dran`;
+        banner.style.color = p.color;
+      }
     }
   }
 }
@@ -509,33 +561,6 @@ function renderScorebar() {
     </div>`).join('');
 }
 
-// ── iOS AUDIO UNLOCK ─────────────────────────────────────────────────────────
-// iOS Safari blockiert audio.play() nach async-Operationen.
-// Lösung: Audio-Element im synchronen Click-Handler entsperren.
-function unlockAudio() {
-  const audio = document.getElementById('audio');
-  if (audio.dataset.unlocked) return;
-  audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6ur///////////////////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV';
-  audio.volume = 0;
-  const p = audio.play();
-  if (p !== undefined) {
-    p.then(() => {
-      audio.pause();
-      audio.volume = 1;
-      audio.src = '';
-      audio.dataset.unlocked = '1';
-    }).catch(() => {
-      audio.volume = 1;
-      audio.src = '';
-      audio.dataset.unlocked = '1';
-    });
-  } else {
-    audio.pause();
-    audio.volume = 1;
-    audio.src = '';
-    audio.dataset.unlocked = '1';
-  }
-}
 
 // ── GESPEICHERTE PREVIEW DIREKT ABSPIELEN (kein Netzwerk) ────────────────────
 function playStoredEntry(entry) {
@@ -571,7 +596,6 @@ function playStoredEntry(entry) {
 
 // ── CARD LOOKUP ───────────────────────────────────────────────────────────────
 async function lookupCard() {
-  unlockAudio(); // iOS: sofort im Click-Handler entsperren
   const num = parseInt(document.getElementById('card-num').value);
   if (!num) return;
   const entry = DB[String(num)];
@@ -591,7 +615,6 @@ async function lookupCard() {
 }
 
 async function searchManual() {
-  unlockAudio();
   const artist = document.getElementById('m-artist').value.trim();
   const title  = document.getElementById('m-title').value.trim();
   if (!artist && !title) return;
@@ -600,7 +623,6 @@ async function searchManual() {
 
 // ── RANDOM MODE ───────────────────────────────────────────────────────────────
 function drawRandomSong() {
-  unlockAudio(); // iOS: sofort im Click-Handler entsperren
   const activeDB  = getActiveDB();
   const allKeys   = Object.keys(activeDB);
   if (!allKeys.length) {
@@ -803,13 +825,49 @@ function doReveal() {
   const artEl = document.getElementById('art-reveal');
   artEl.innerHTML = current.artwork ? `<img src="${current.artwork}">` : '🎵';
 
-  document.getElementById('award-grid').innerHTML = players.map(p => `
-    <button class="award-btn" onclick="pickWinner('${p.name}', this)"
-            style="border-color:${p.color}44">
-      <span style="color:${p.color}; font-size:1.1em">●</span><br>${p.name}
-    </button>`).join('');
+  if (gameMode === 'random') {
+    const p = players[currentTurn];
+    const turnInfo = document.getElementById('reveal-turn-info');
+    turnInfo.textContent = `Punkte für: ${p.name}`;
+    turnInfo.style.color = p.color;
+    turnInfo.classList.remove('hidden');
+    document.getElementById('award-label').textContent = 'Was wurde richtig geraten?';
 
-  document.getElementById('btn-next').disabled = true;
+    const decade = Math.floor((current.year || 0) / 10) * 10;
+    document.getElementById('award-grid').innerHTML = `
+      <button class="point-tile" onclick="togglePointTile(this)" data-pts="5">
+        <div class="tile-pts">5</div>
+        <div class="tile-label">Richtiger Titel</div>
+      </button>
+      <button class="point-tile" onclick="togglePointTile(this)" data-pts="5">
+        <div class="tile-pts">5</div>
+        <div class="tile-label">Richtiger Interpret</div>
+      </button>
+      <button class="point-tile" onclick="togglePointTile(this)" data-pts="5">
+        <div class="tile-pts">5</div>
+        <div class="tile-label">Richtiges Jahr</div>
+      </button>
+      <button class="point-tile" onclick="togglePointTile(this)" data-pts="2">
+        <div class="tile-pts">2</div>
+        <div class="tile-label">Richtiges Jahrzehnt<br>${decade}er</div>
+      </button>`;
+    document.getElementById('pts-sum-display').textContent = '';
+    document.getElementById('pts-sum-display').classList.remove('hidden');
+    document.getElementById('btn-next').disabled = false;
+    document.getElementById('btn-next').textContent = 'Punkte vergeben →';
+  } else {
+    document.getElementById('reveal-turn-info').classList.add('hidden');
+    document.getElementById('pts-sum-display').classList.add('hidden');
+    document.getElementById('award-label').textContent = 'Wer bekommt die Karte?';
+    document.getElementById('award-grid').innerHTML = players.map(p => `
+      <button class="award-btn" onclick="pickWinner('${p.name}', this)"
+              style="border-color:${p.color}44">
+        <span style="color:${p.color}; font-size:1.1em">●</span><br>${p.name}
+      </button>`).join('');
+    document.getElementById('btn-next').disabled = true;
+    document.getElementById('btn-next').textContent = 'Nächste Karte →';
+  }
+
   phase('reveal');
 }
 
@@ -821,8 +879,27 @@ function pickWinner(name, btn) {
   document.getElementById('btn-next').disabled = false;
 }
 
+function togglePointTile(btn) {
+  btn.classList.toggle('selected');
+  const total = [...document.querySelectorAll('.point-tile.selected')]
+    .reduce((sum, t) => sum + parseInt(t.dataset.pts), 0);
+  const display = document.getElementById('pts-sum-display');
+  display.textContent = total > 0 ? `${total} Punkte` : '';
+}
+
 function nextCard() {
-  if (pendingWinner) {
+  if (gameMode === 'random') {
+    const total = [...document.querySelectorAll('.point-tile.selected')]
+      .reduce((sum, t) => sum + parseInt(t.dataset.pts), 0);
+    const p = players[currentTurn];
+    scores[p.name] += total;
+    renderScorebar();
+    if (total > 0) {
+      const pill = document.querySelector(`#pill-${CSS.escape(p.name)}`);
+      if (pill) { pill.classList.add('winner'); setTimeout(() => pill.classList.remove('winner'), 1800); }
+    }
+    currentTurn = 1 - currentTurn;
+  } else if (pendingWinner) {
     scores[pendingWinner]++;
     renderScorebar();
     const pill = document.querySelector(`#pill-${CSS.escape(pendingWinner)}`);

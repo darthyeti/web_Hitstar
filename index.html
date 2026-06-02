@@ -509,8 +509,37 @@ function renderScorebar() {
     </div>`).join('');
 }
 
+// ── iOS AUDIO UNLOCK ─────────────────────────────────────────────────────────
+// iOS Safari blockiert audio.play() nach async-Operationen.
+// Lösung: Audio-Element im synchronen Click-Handler entsperren.
+function unlockAudio() {
+  const audio = document.getElementById('audio');
+  if (audio.dataset.unlocked) return;
+  audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6ur///////////////////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV';
+  audio.volume = 0;
+  const p = audio.play();
+  if (p !== undefined) {
+    p.then(() => {
+      audio.pause();
+      audio.volume = 1;
+      audio.src = '';
+      audio.dataset.unlocked = '1';
+    }).catch(() => {
+      audio.volume = 1;
+      audio.src = '';
+      audio.dataset.unlocked = '1';
+    });
+  } else {
+    audio.pause();
+    audio.volume = 1;
+    audio.src = '';
+    audio.dataset.unlocked = '1';
+  }
+}
+
 // ── CARD LOOKUP ───────────────────────────────────────────────────────────────
 async function lookupCard() {
+  unlockAudio(); // iOS: sofort im Click-Handler entsperren
   const num = parseInt(document.getElementById('card-num').value);
   if (!num) return;
   const entry = DB[String(num)];
@@ -526,6 +555,7 @@ async function lookupCard() {
 }
 
 async function searchManual() {
+  unlockAudio();
   const artist = document.getElementById('m-artist').value.trim();
   const title  = document.getElementById('m-title').value.trim();
   if (!artist && !title) return;
@@ -534,6 +564,7 @@ async function searchManual() {
 
 // ── RANDOM MODE ───────────────────────────────────────────────────────────────
 function drawRandomSong() {
+  unlockAudio(); // iOS: sofort im Click-Handler entsperren
   const activeDB  = getActiveDB();
   const allKeys   = Object.keys(activeDB);
   if (!allKeys.length) {
@@ -573,7 +604,8 @@ async function searchItunes(artist, title, dbYear) {
     playResult(rIdx, dbYear);
   } catch(e) {
     document.getElementById('spinner').classList.add('hidden');
-    document.getElementById('play-hint').textContent = '⚠️ Netzwerkfehler.';
+    document.getElementById('play-hint').textContent = '⚠️ Netzwerkfehler – Internetverbindung prüfen.';
+    console.error('iTunes fetch error:', e);
   }
 }
 
@@ -596,9 +628,15 @@ function playResult(idx, dbYear = null) {
   const audio = document.getElementById('audio');
   if (current.previewUrl) {
     audio.src = current.previewUrl;
-    audio.play().catch(() => {});
-    document.getElementById('vinyl').style.animationPlayState = 'running';
-    document.getElementById('play-hint').textContent = '🎵 Song läuft… wann war das?';
+    audio.load();
+    audio.play().then(() => {
+      document.getElementById('vinyl').style.animationPlayState = 'running';
+      document.getElementById('play-hint').textContent = '🎵 Song läuft… wann war das?';
+    }).catch(err => {
+      console.error('Playback error:', err);
+      document.getElementById('play-hint').textContent = '⚠️ Wiedergabe blockiert – bitte "Weiter" tippen.';
+      document.getElementById('btn-pause').textContent = '▶ Weiter';
+    });
     document.getElementById('btn-pause').textContent = '⏸ Pause';
     audio.ontimeupdate = () => {
       const cur = audio.currentTime, dur = audio.duration || 30;

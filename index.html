@@ -413,7 +413,8 @@
       <button class="btn btn-secondary" onclick="skipCard()">Überspringen</button>
       <button class="btn btn-success" id="btn-next" onclick="nextCard()" disabled>Nächste Karte →</button>
     </div>
-    <button class="btn btn-secondary btn-sm mt16" onclick="showEndGame()">Spiel beenden</button>
+    <button id="btn-flag-reveal" class="btn btn-secondary btn-sm mt8 hidden" onclick="toggleFlag()">🚩 Zur Prüfung markieren</button>
+    <button class="btn btn-secondary btn-sm mt8" onclick="showEndGame()">Spiel beenden</button>
   </div>
 </div>
 
@@ -1026,6 +1027,7 @@ function doReveal() {
   }
 
   phase('reveal');
+  updateFlagButton();
 }
 
 let pendingWinner = null;
@@ -1233,12 +1235,16 @@ function updateFlaggedBadge() {
   document.getElementById('btn-flagged-wrap').style.display = count > 0 ? '' : 'none';
 }
 function updateFlagButton() {
-  const btn = document.getElementById('btn-flag');
-  if (!current?.key) { btn.classList.add('hidden'); return; }
-  btn.classList.remove('hidden');
+  const btns = [document.getElementById('btn-flag'), document.getElementById('btn-flag-reveal')];
+  if (!current?.key) { btns.forEach(b => b?.classList.add('hidden')); return; }
   const isFlagged = !!flaggedCards[current.key];
-  btn.textContent = isFlagged ? '🚩 Markiert ✓' : '🚩 Zur Prüfung markieren';
-  btn.classList.toggle('btn-flagged', isFlagged);
+  const label = isFlagged ? '🚩 Markiert ✓' : '🚩 Zur Prüfung markieren';
+  btns.forEach(b => {
+    if (!b) return;
+    b.classList.remove('hidden');
+    b.textContent = label;
+    b.classList.toggle('btn-flagged', isFlagged);
+  });
 }
 function toggleFlag() {
   if (!current?.key) return;

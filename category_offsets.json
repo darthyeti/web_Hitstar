@@ -1,0 +1,9 @@
+{
+  "offsets": {
+    "Legacy": 0,
+    "Rock am Ring": 0,
+    "Rock": 1000,
+    "Wacken": 2000
+  },
+  "next_offset": 3000
+}

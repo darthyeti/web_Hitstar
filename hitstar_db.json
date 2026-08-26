@@ -77,9 +77,7 @@
   },
   "1007": {
     "artist": "System Of A Down",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/82/51/52/825152b4-9423-b23b-c036-cc67ead732d4/888888046775.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/f4/a1/c2/f4a1c207-6d73-e3bd-8fcb-bd6c5037021a/mzaf_16212608709217830172.plus.aac.p.m4a",
     "title": "BYOB",
     "year": 2005
   },
@@ -209,9 +207,7 @@
   },
   "1021": {
     "artist": "From Ashes To New",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/09/a6/6a/09a66aac-79b5-d76c-440a-7fcf7817d13a/849320085409.png/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ca/1c/99/ca1c9901-3b98-0d86-a8bc-8951cc85c713/mzaf_11770641112258924853.plus.aac.p.m4a",
     "title": "Panic",
     "year": 2020
   },
@@ -487,9 +483,7 @@
   },
   "1052": {
     "artist": "Electric Callboy",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/da/cd/6b/dacd6bcf-c4f3-e0ca-3927-94bb5ec2df5c/886448556541.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/96/d2/ea/96d2eae5-a9ea-d890-76b3-170c1bd4b113/mzaf_16922547230091412699.plus.aac.p.m4a",
     "title": "We Got The Moves",
     "year": 2021
   },
@@ -1164,10 +1158,12 @@
   },
   "1127": {
     "artist": "Sum 41",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/31/35/56/31355634-dc41-da74-e357-6a3a5ddbe544/3810.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/59/17/4d/59174d33-7211-9fb1-5952-5895c94e06d4/09UMGIM03043.rgb.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/5c/86/b4/5c86b4b7-22f3-7985-d628-ee32c6412fc3/mzaf_10224807974423996589.plus.aac.p.m4a",
+    "itunesYear": 2002,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d2/a9/2c/d2a92c39-a234-69be-8844-9243e7a7a3cf/mzaf_7373408744086607619.plus.aac.p.m4a",
     "title": "Still Waiting",
+    "trackId": 1440659995,
     "year": 2002
   },
   "1128": {
@@ -1246,9 +1242,7 @@
   },
   "1136": {
     "artist": "Lit",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music71/v4/9a/16/ad/9a16ade5-4b9d-24a5-9524-7d36ff87a3c5/7320470150719.png/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/fb/6f/dd/fb6fdd4e-c43f-0bd9-2e3f-3bd37fa1664f/mzaf_10164048063664608225.plus.aac.p.m4a",
     "title": "My Own Worst Enemy",
     "year": 1999
   },
@@ -1262,9 +1256,7 @@
   },
   "1138": {
     "artist": "Måneskin feat. Tom Morello",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/ea/51/5b/ea515be2-ffa8-3204-639d-495162741dff/198009070688.png/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/25/48/04/254804b9-0135-cca7-a6f8-2d58fc61e02b/mzaf_12149363624434421646.plus.aac.p.m4a",
     "title": "Gossip",
     "year": 2023
   },
@@ -1402,10 +1394,12 @@
   },
   "1153": {
     "artist": "Green Day",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/9e/17/c2/mzi.ofggkufy.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/a8/ee/8e/a8ee8ea8-f55f-510e-eb13-8ae8b7623a72/190295570910.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6d/1e/01/6d1e01bf-4389-bc76-74d3-80cc1eb24b35/mzaf_18076976258909915107.plus.aac.p.m4a",
+    "itunesYear": 2017,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fe/31/22/fe31224d-43e4-096c-92b7-f8d5e50b03a4/mzaf_11942175811226270568.plus.aac.p.m4a",
     "title": "American Idiot",
+    "trackId": 1415820401,
     "year": 2004
   },
   "1154": {
@@ -1426,10 +1420,12 @@
   },
   "1156": {
     "artist": "Måneskin",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/20/63/8a/20638a69-2289-4505-8f45-4e622c62277b/199806096826.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/61/72/ca/6172ca27-a8e0-815c-1e42-5bef715863ac/190296534003.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/50/09/8d/50098dc6-c769-4ee4-a1d0-2cc41a549021/mzaf_3806809689939804076.plus.aac.p.m4a",
+    "itunesYear": 2021,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/12/21/9d/12219d25-5cc2-62a2-25d6-3ee1ef0d6e3c/mzaf_11887993260195681088.plus.aac.p.m4a",
     "title": "I Wanna Be Your Slave",
+    "trackId": 1576164180,
     "year": 2021
   },
   "1157": {
@@ -1704,9 +1700,7 @@
   },
   "1187": {
     "artist": "Seether",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/20/08/63/20086312-e5d1-55ea-6f8a-8945c4f93144/16UMGIM34328.rgb.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/df/0b/77/df0b7750-38f0-56f3-ed3b-c200397e222f/mzaf_9465694104706298237.plus.aac.p.m4a",
     "title": "Fake It",
     "year": 2007
   },
@@ -1762,9 +1756,7 @@
   },
   "1193": {
     "artist": "Five Finger Death Punch",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/18/c4/17/18c41740-2655-715c-76bc-51db152178d8/849320031468.png/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/70/9b/da/709bdaa5-5ef8-b244-d2d4-b1c3d4b1bf06/mzaf_16503206444234624794.plus.aac.p.m4a",
     "title": "Jekyll And Hyde",
     "year": 2015
   },
@@ -1901,10 +1893,12 @@
   },
   "1208": {
     "artist": "Rage Against The Machine",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/10/7d/eb/107deb76-ee81-8151-2375-7b18f67591f0/074646963029.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/b0/8c/dd/b08cdd66-9c18-b724-5b50-770007804f0e/886448665946.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/38/b0/1c/38b01c38-a841-759a-b6b5-6cd21a5fa7fa/mzaf_10935350278899027753.plus.aac.p.m4a",
+    "itunesYear": 2001,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/b5/99/8c/b5998c49-ea3a-4d49-3b79-1070040e874c/mzaf_11140286903762802438.plus.aac.p.m4a",
     "title": "Guerilla Radio",
+    "trackId": 1536376023,
     "year": 1999
   },
   "1209": {
@@ -2303,10 +2297,12 @@
   },
   "1252": {
     "artist": "Danzig",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/38/d5/73/38d573bb-4bfd-b2cc-d03d-f39ff14ef690/17035e61-d64d-4e21-819f-0cfe3c8bd25f.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/e8/fc/8a/e8fc8a8b-3fa9-b692-4d78-46b00bec13d5/00602537350964.rgb.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/29/23/a5/2923a5ef-9a91-6abb-d78e-3c1725f57792/mzaf_9012052401682885863.plus.aac.p.m4a",
+    "itunesYear": 1993,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/10/10/d1/1010d1c8-6af1-e900-aa44-1835c3bd1f70/mzaf_17366095438285065684.plus.aac.p.m4a",
     "title": "Mother",
+    "trackId": 1461452295,
     "year": 1988
   },
   "1253": {
@@ -2572,17 +2568,17 @@
   },
   "1282": {
     "artist": "Bring Me The Horizon",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/bb/dc/1d/bbdc1dda-00d3-f989-0599-543da601acaf/886445386097.jpg/600x600bb.jpg",
+    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/84/1c/69/841c6944-21aa-8475-cf62-6abf22c92afb/196873287485.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/84/9d/3c/849d3c2e-4b6a-da73-75d4-bc8758257617/mzaf_314227758215414308.plus.aac.p.m4a",
+    "itunesYear": 2025,
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/47/ef/11/47ef113f-de78-f5d2-8d70-4713eac55920/mzaf_3609909276818164904.plus.aac.p.m4a",
     "title": "Lost",
+    "trackId": 1821917960,
     "year": 2023
   },
   "1283": {
     "artist": "Corey Taylor feat. Tech N9ne & Kid Bookie",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/cd/11/1f/cd111fc2-c6ba-0f19-adf1-5948d30f783b/MM19024.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview114/v4/10/b2/e8/10b2e852-ff8d-76ff-a0b1-73e24186faa8/mzaf_11960816824961838311.plus.aac.p.m4a",
     "title": "CMFT Must Be Stopped",
     "year": 2020
   },
@@ -2670,9 +2666,7 @@
   },
   "1293": {
     "artist": "Stone Sour",
-    "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/c6/e3/3b/c6e33b36-a2ca-f4a9-f599-354d03d77f20/016861357498.jpg/600x600bb.jpg",
     "cat": "Rock",
-    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/15/2a/cc/152acc07-cd09-ec46-ef24-e3936cdc5c85/mzaf_11239028754228124041.plus.aac.p.m4a",
     "title": "Absolute Zero",
     "year": 2012
   },
